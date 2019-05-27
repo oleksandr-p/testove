@@ -31,8 +31,8 @@ final class Application
      */
     private function initRoute( ?string $uri = '/' ): ?string
     {
-        $uri = array_shift(explode('?', $uri) );
-
+        $uri = explode('?', $uri);
+        $uri = array_shift($uri);
         if( array_key_exists($uri, $this->routing) ){
             $route = explode(':', $this->routing[$uri]);
 

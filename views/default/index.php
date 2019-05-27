@@ -45,7 +45,7 @@ $this->title = 'Home page';
         </tr>
     </tfoot>
 </table>
-<?php elseif( is_null($better) && $this->get['products'] ): ?>
+<?php elseif( is_null($better) && isset($this->get['products']) ): ?>
     <div class="alert alert-dark" role="alert">
         Restaurant: none
     </div>
