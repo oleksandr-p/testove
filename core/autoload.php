@@ -3,8 +3,7 @@
  * @param $classname
  * @throws Exception
  */
-function __autoload( $classname ) {
+spl_autoload_register(function($classname){
     $filename = ROOT_DIR.str_replace('\\', '/', $classname).".php";
     include_once($filename);
-}
-
+});
