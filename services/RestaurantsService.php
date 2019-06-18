@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: oleksandr
- * Date: 25.05.19
- * Time: 1:57
- */
-
 namespace services;
 
 use helpers\ArrayHelper;
@@ -20,16 +13,11 @@ class RestaurantsService
     public static function fetchProducts( $resource ): ?array
     {
         $product_list = [];
-
         while ( ($row = fgetcsv($resource, 1000, ',')) !== false ) {
             $products  = array_filter( array_splice($row, 2), 'strlen');
             $relations = array_splice($row, 0, 2);
-
-            foreach( $products as $product ){
-                $product_list[] = ['restaurant_id' => $relations[0], 'price' => $relations[1], 'name' => trim($product)];
-            }
+            $product_list[] = ['restaurant_id' => $relations[0], 'price' => $relations[1], 'names' => $products];
         } fclose($resource);
-
         return $product_list;
     }
 
@@ -40,13 +28,16 @@ class RestaurantsService
      */
     public static function filter( array $order, array $restaurants ): array {
         /** remove restaurants **/
-        foreach ( $restaurants as $restaurant_id => &$restaurant ){
-            if( array_diff ($order, array_column($restaurant, 'name')) ){
+        foreach ( $restaurants as $restaurant_id => &$restaurant ) {
+
+            $names = ArrayHelper::uniqueColumns($restaurant, 'names');
+
+            if( array_diff ($order, $names) ){
                 unset($restaurants[$restaurant_id]); continue;
             }
 
             foreach( $restaurant as $key => $product ){
-                if( !in_array($product['name'], $order ) ){
+                if( count( array_diff($order, $product['names']) ) >= count($order) ){
                     unset($restaurant[$key]); continue;
                 }
             }
@@ -56,14 +47,90 @@ class RestaurantsService
 
     /**
      * @param array $restaurants
+     * @param array $order
      * @return array|null
      */
-    public static function findBetter(array $restaurants ): ?array {
+    public static function findBetter(array $restaurants, array $order ): ?array {
         $better = null;
         foreach ( $restaurants as $restaurant ){
-            if( is_null($better) || ArrayHelper::sumColumn($better, 'price') > ArrayHelper::sumColumn($restaurant, 'price') ){ $better = $restaurant; }
+            $better = self::lowPrice($better, self::betterPermutation($restaurant, $order) );
         }
 
         return $better;
     }
+
+    /**
+     * @param $restaurant
+     * @param $order
+     * @return array|null
+     */
+    public static function betterPermutation( $restaurant, $order ): array
+    {
+
+        $iterator = new IteratorService;
+        $better = null;
+
+        $permutations = $iterator->permutations( $restaurant, count($order) );
+
+        foreach( $permutations as $permutation ){
+            $variation = [];
+            $left = $order;
+            foreach ( $permutation as $item ){
+
+                if(count( array_diff($left, $item['names']) ) <> count($left) ){
+                    $left = array_diff($left, $item['names']);
+                    $variation[] = $item;
+                }
+
+                if( !$left && (!$better || ArrayHelper::sumColumn($variation, 'price') < ArrayHelper::sumColumn($better, 'price')) ) {
+                    $better = $variation;
+                    continue;
+                }
+            }
+        }
+
+        return $better;
+    }
+
+    /**
+     * @param array $restaurant
+     * @param array $order
+     * @return array|null
+     */
+    public static function getVariation( array $restaurant, array $order ): ?iterable
+    {
+        $combination = [];
+        $iterator = new IteratorService;
+        
+        foreach ( $iterator->combinations($restaurant, function( $item ) use ( $order ) {
+
+            if( !count(array_diff($order, ArrayHelper::uniqueColumns($item, 'names')) ) ) {
+                return $item;
+            }
+
+            return null;
+        },  count($order), $order ) as $value ){
+
+            if( !count($combination) || ArrayHelper::sumColumn($value, 'price') < ArrayHelper::sumColumn($combination, 'price') ){
+                $combination[] = $value;
+            }
+        }
+        
+        return $combination;
+    }
+
+
+    /**
+     * @param array|null $old_variation
+     * @param array|null $new_variation
+     * @return array
+     */
+    public static function lowPrice ( ?array $old_variation, ?array $new_variation ): array
+    {
+        if( !$old_variation || ArrayHelper::sumColumn($new_variation, 'price') < ArrayHelper::sumColumn($old_variation, 'price')){
+            return $new_variation;
+        }
+        return $old_variation;
+    }
+
 }

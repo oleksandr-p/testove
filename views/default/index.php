@@ -32,7 +32,7 @@ $this->title = 'Home page';
     <?php foreach( $better as $product ): ?>
         <tr>
             <td><?= $this->encode( $product['restaurant_id'] ) ?></td>
-            <td><?= $this->encode( $product['name'] ) ?></td>
+            <td><?php foreach ( $product['names'] as $name ): ?><span class="badge badge-info"> <?= $this->encode($name) ?> </span> <?php endforeach; ?></td>
             <td>$ <?= $this->encode( $product['price'] ) ?></td>
         </tr>
     <?php endforeach; ?>

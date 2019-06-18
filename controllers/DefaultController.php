@@ -13,7 +13,7 @@ class DefaultController extends Controller
      */
     public function indexAction(): string
     {
-        $path = PUBLIC_DIR.'menu/menu.csv';
+        $path = PUBLIC_DIR.'menu/data2.csv';
 
         if( !file_exists($path) ){
             throw new \Exception('File does not exists', 500);
@@ -23,14 +23,14 @@ class DefaultController extends Controller
             throw new \Exception('File does not exists', 500);
         }
 
-        $product_list = RestaurantsService::fetchProducts( $resource );
-        $product_names = ArrayHelper::uniqueColumn($product_list, 'name');
+        $product_list  = RestaurantsService::fetchProducts( $resource );
 
+        $product_names = ArrayHelper::uniqueColumns($product_list, 'names');
 
         if( isset($this->get['products']) && !array_diff($this->get['products'], $product_names) ){
             $restaurants = ArrayHelper::groupBy($product_list, 'restaurant_id');
             $restaurants = RestaurantsService::filter($this->get['products'], $restaurants);
-            $better      = RestaurantsService::findBetter($restaurants);
+            $better      = RestaurantsService::findBetter( $restaurants, $this->get['products'] );
         }
 
         return $this->render('default:index', [
